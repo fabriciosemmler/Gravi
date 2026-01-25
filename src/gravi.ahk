@@ -14,21 +14,49 @@
 */
 
 ; ==============================================================================
-; CONFIGURAÇÃO (MODO COMERCIAL)
+; INICIALIZAÇÃO E CONFIGURAÇÃO
 ; ==============================================================================
-; Define o arquivo de configuração ao lado do script
 ArquivoIni := A_ScriptDir . "\settings.ini"
 
-; Se o arquivo não existir, cria um padrão (Primeira execução do cliente)
-if !FileExist(ArquivoIni) {
-    IniWrite(A_MyDocuments, ArquivoIni, "Geral", "PastaAlvo")
-    IniWrite("mkv,mp4,mov", ArquivoIni, "Geral", "Extensoes")
-    MsgBox("Bem-vindo ao GRAVI!`n`nConfigurei a pasta 'Documentos' como padrão.`nPara alterar, edite o arquivo 'settings.ini' criado na pasta.", "Configuração Inicial")
+; Tenta ler a pasta. Se der erro ou vazio, retorna "ERRO"
+PastaVideos := IniRead(ArquivoIni, "Geral", "PastaAlvo", "ERRO")
+ExtensoesPermitidas := IniRead(ArquivoIni, "Geral", "Extensoes", "mkv,mp4,mov")
+
+; LÓGICA DE BOAS-VINDAS INTELIGENTE
+if (PastaVideos = "ERRO" or !DirExist(PastaVideos)) {
+    ; Cenário 1: Primeira vez ou pasta apagada. Força a escolha.
+    MsgBox("Bem-vindo ao GRAVI!`n`nPara começar, selecione a pasta onde seus vídeos são salvos.", "Configuração Inicial")
+    ConfigurarPasta()
+} else {
+    ; Cenário 2: Já configurado. Dá 3 segundos para mudar, senão segue o baile.
+    Resultado := MsgBox("GRAVI ATIVO!`nMonitorando: " . PastaVideos . "`n`nDeseja alterar a pasta monitorada?", "Gravi", "YesNo T7 Iconi")
+    
+    if (Resultado = "Yes")
+        ConfigurarPasta()
 }
 
-; Lê as configurações do arquivo (O cliente tem controle agora)
-global PastaVideos := IniRead(ArquivoIni, "Geral", "PastaAlvo", A_MyDocuments)
-global ExtensoesPermitidas := IniRead(ArquivoIni, "Geral", "Extensoes", "mkv,mp4,mov")
+; Função para selecionar e salvar
+ConfigurarPasta() {
+    global PastaVideos, ArquivoIni
+    
+    ; MUDANÇA AQUI: Substituímos 'PastaVideos' por "" (aspas vazias).
+    ; Isso reseta a janela para "Meu Computador", permitindo escolher qualquer lugar.
+    NovaPasta := DirSelect("", 3, "Selecione a pasta de gravações do OBS")
+    
+    if (NovaPasta = "") {
+        MsgBox("Nenhuma pasta selecionada. O Gravi será encerrado.", "Erro")
+        ExitApp
+    }
+    
+    PastaVideos := NovaPasta
+    IniWrite(PastaVideos, ArquivoIni, "Geral", "PastaAlvo")
+    IniWrite("mkv,mp4,mov", ArquivoIni, "Geral", "Extensoes") 
+    MsgBox("Configuração salva com sucesso!`nMonitorando: " . PastaVideos, "Gravi")
+}
+
+; Adiciona opção ao Menu da Bandeja (Backup para o usuário avançado)
+A_TrayMenu.Add() ; Separador
+A_TrayMenu.Add("Alterar Pasta Monitorada", (*) => ConfigurarPasta())
 
 ; ==============================================================================
 ; INTERFACE VISUAL
