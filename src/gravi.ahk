@@ -14,10 +14,21 @@
 */
 
 ; ==============================================================================
-; CONFIGURAÇÃO
+; CONFIGURAÇÃO (MODO COMERCIAL)
 ; ==============================================================================
-global PastaVideos := "C:\Users\marci\OneDrive\Área de Trabalho\Biblioteca de Gameplay" 
-global ExtensoesPermitidas := "mkv,mp4,mov" 
+; Define o arquivo de configuração ao lado do script
+ArquivoIni := A_ScriptDir . "\settings.ini"
+
+; Se o arquivo não existir, cria um padrão (Primeira execução do cliente)
+if !FileExist(ArquivoIni) {
+    IniWrite(A_MyDocuments, ArquivoIni, "Geral", "PastaAlvo")
+    IniWrite("mkv,mp4,mov", ArquivoIni, "Geral", "Extensoes")
+    MsgBox("Bem-vindo ao GRAVI!`n`nConfigurei a pasta 'Documentos' como padrão.`nPara alterar, edite o arquivo 'settings.ini' criado na pasta.", "Configuração Inicial")
+}
+
+; Lê as configurações do arquivo (O cliente tem controle agora)
+global PastaVideos := IniRead(ArquivoIni, "Geral", "PastaAlvo", A_MyDocuments)
+global ExtensoesPermitidas := IniRead(ArquivoIni, "Geral", "Extensoes", "mkv,mp4,mov")
 
 ; ==============================================================================
 ; INTERFACE VISUAL
