@@ -8,7 +8,7 @@
     DESCRIPTION:
         Um monitor de gravação minimalista para OBS Studio.
         Detecta a criação e crescimento de arquivos de vídeo em tempo real
-        e exibe um indicador visual (Tally Light) na tela.
+        e exibe um indicador visual na tela.
         
     LICENSE: MIT (Open Source)
 */
