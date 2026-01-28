@@ -16,31 +16,44 @@
 ; ==============================================================================
 ; INICIALIZAÇÃO E CONFIGURAÇÃO
 ; ==============================================================================
-ArquivoIni := A_ScriptDir . "\settings.ini"
+PastaConfig := A_AppData . "\Gravi"
+if !DirExist(PastaConfig)
+    DirCreate(PastaConfig)
 
-; Tenta ler a pasta. Se der erro ou vazio, retorna "ERRO"
-PastaVideos := IniRead(ArquivoIni, "Geral", "PastaAlvo", "ERRO")
+ArquivoIni := PastaConfig . "\settings.ini"
+
+; --- INTERVENÇÃO CIRÚRGICA AQUI ---
+; Define o padrão como a pasta de Vídeos do usuário atual
+CaminhoPadrao := "C:\Users\" . A_UserName . "\Videos"
+
+; Lê o INI. Se não existir, usa o CaminhoPadrao
+PastaVideos := IniRead(ArquivoIni, "Geral", "PastaAlvo", CaminhoPadrao)
 ExtensoesPermitidas := IniRead(ArquivoIni, "Geral", "Extensoes", "mkv,mp4,mov")
 
-; LÓGICA DE BOAS-VINDAS INTELIGENTE
-if (PastaVideos = "ERRO" or !DirExist(PastaVideos)) {
-    ; Cenário 1: Primeira vez ou pasta apagada. Força a escolha.
-    MsgBox("Bem-vindo ao GRAVI!`n`nPara começar, selecione a pasta onde seus vídeos são salvos.", "Configuração Inicial")
+; Lógica de Verificação
+if (!DirExist(PastaVideos)) {
+    ; Se nem a pasta configurada nem a padrão existirem (raro), pede ajuda
+    MsgBox("Bem-vindo ao GRAVI!`n`nNão encontrei sua pasta de Vídeos.`nPor favor, selecione onde salvar suas gravações.", "Configuração Inicial")
     ConfigurarPasta()
 } else {
-    ; Cenário 2: Já configurado. Dá 3 segundos para mudar, senão segue o baile.
-    Resultado := MsgBox("GRAVI ATIVO!`nMonitorando: " . PastaVideos . "`n`nDeseja alterar a pasta monitorada?", "Gravi", "YesNo T7 Iconi")
-    
-    if (Resultado = "Yes")
-        ConfigurarPasta()
+    ; Se for a primeira vez (INI não existe), cria ele silenciosamente com o padrão
+    if !FileExist(ArquivoIni) {
+        IniWrite(PastaVideos, ArquivoIni, "Geral", "PastaAlvo")
+        IniWrite(ExtensoesPermitidas, ArquivoIni, "Geral", "Extensoes")
+        MsgBox("Bem-vindo ao GRAVI!`n`nIniciado automaticamente em:`n" . PastaVideos, "Gravi")
+    } else {
+        ; Execução normal
+        Resultado := MsgBox("GRAVI ATIVO!`nMonitorando: " . PastaVideos . "`n`nDeseja alterar a pasta monitorada?", "Gravi", "YesNo T7 Iconi")
+        if (Resultado = "Yes")
+            ConfigurarPasta()
+    }
 }
+; ----------------------------------
 
 ; Função para selecionar e salvar
 ConfigurarPasta() {
     global PastaVideos, ArquivoIni
     
-    ; MUDANÇA AQUI: Substituímos 'PastaVideos' por "" (aspas vazias).
-    ; Isso reseta a janela para "Meu Computador", permitindo escolher qualquer lugar.
     NovaPasta := DirSelect("", 3, "Selecione a pasta de gravações do OBS")
     
     if (NovaPasta = "") {
@@ -54,8 +67,7 @@ ConfigurarPasta() {
     MsgBox("Configuração salva com sucesso!`nMonitorando: " . PastaVideos, "Gravi")
 }
 
-; Adiciona opção ao Menu da Bandeja (Backup para o usuário avançado)
-A_TrayMenu.Add() ; Separador
+A_TrayMenu.Add()
 A_TrayMenu.Add("Alterar Pasta Monitorada", (*) => ConfigurarPasta())
 
 ; ==============================================================================
@@ -70,7 +82,6 @@ GuiRec.Add("Text", "cFF0000", "🔴 REC")
 ; ==============================================================================
 ; MOTOR HÍBRIDO
 ; ==============================================================================
-; Verificação rápida (500ms)
 SetTimer MonitorarDisco, 500
 
 MonitorarDisco() {
@@ -82,7 +93,6 @@ MonitorarDisco() {
     ArquivoMaisRecente := ""
     HoraMaisRecente := 0 
     
-    ; 1. Varredura
     Loop Files, PastaVideos . "\*.*" 
     {
         if InStr(ExtensoesPermitidas, A_LoopFileExt)
@@ -99,33 +109,22 @@ MonitorarDisco() {
         return
     }
 
-    ; 2. ANÁLISE HÍBRIDA (O Segredo)
-    
-    ; Critério A: Horário (Para INÍCIO Rápido)
-    ; Se o arquivo foi tocado nos últimos 2 segundos, considere gravando.
     EhRecente := (DateDiff(A_Now, HoraMaisRecente, "Seconds") < 2)
     
-    ; Critério B: Tamanho (Para FIM Preciso)
     try {
         TamanhoAtual := FileGetSize(ArquivoMaisRecente)
     } catch {
-        TamanhoAtual := UltimoTamanho ; Evita erro de leitura
+        TamanhoAtual := UltimoTamanho 
     }
     Cresceu := (TamanhoAtual > UltimoTamanho)
-    UltimoTamanho := TamanhoAtual ; Atualiza para a próxima volta
+    UltimoTamanho := TamanhoAtual 
 
-    ; 3. DECISÃO
-    ; Se é recente (Início rápido) OU Se está crescendo (Gravação contínua)
     if (EhRecente || Cresceu) {
         MostrarLuz(true)
-        ContadorParada := 0 ; Zera a contagem de desligamento
+        ContadorParada := 0 
     } 
     else {
-        ; Se não é recente E não cresceu, começa a contar para desligar
         ContadorParada += 1
-        
-        ; Espera 4 ciclos (2 segundos) sem atividade para desligar
-        ; Isso evita que a luz pisque se o HD engasgar
         if (ContadorParada >= 4) {
             MostrarLuz(false)
         }
