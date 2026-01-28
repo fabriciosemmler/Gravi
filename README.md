@@ -16,7 +16,7 @@ O Gravi atua como um LED vermelho digital:
 ### Para Usuários
 Não requer instalação de nenhum software adicional (se compilado).
 1. Vá até a aba **[Releases](../../releases)** aqui no GitHub.
-2. Baixe o arquivo `Gravi.exe` mais recente.
+2. Baixe o arquivo Gravi_v1.0.zip mais recente.
 3. Execute o arquivo. O ícone aparecerá na bandeja do sistema e monitorará sua pasta configurada.
 
 ### Para Desenvolvedores (Código Fonte)
